@@ -111,7 +111,7 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(),  onClose: () 
         settings.javaScriptEnabled = true
         addJavascriptInterface(jsInterface, "Android")
         onWebViewCreated(this)
-        loadUrl("https://fed2-178-220-158-80.ngrok-free.app") // Specify the URL here
+        loadUrl("https://9ad8-209-214-34-58.ngrok-free.app") // Specify the URL here
     }
 
     AndroidView(
@@ -135,23 +135,24 @@ class JsInterface(val onWebViewEvent: (String) -> Unit) {
 
 private fun handleEventMessage(message: String, onClose: () -> Unit, triggerMessage: () -> Unit) {
     val jsonObject = JSONObject(message)
-    val activity = jsonObject.getString("activity")
+    val command = jsonObject.getString("command")
 
     // Handle the data (e.g., start a new activity, show a dialog, etc.)
     // For demonstration, we're just logging the received data
-    Log.i("WebAppInterface", "Activity: $activity")
+    Log.i("WebAppInterface", "Command: $command")
     Log.i("WebAppInterface", "JSON: $jsonObject")
 
-    if(activity == "close") {
-        onClose()
+    if(command == "close") {
+        triggerMessage()
+//        onClose()
     }
 
-    if(activity == "verify") {
+    if(command == "verify") {
         val payload = jsonObject.getString("payload")
         Log.i("WebView", "Verify payload: $payload")
     }
 
-    if(activity == "pay") {
+    if(command == "pay") {
         val app_id = jsonObject.getString("app_id")
         Log.i("WebView", "Pay app_id: $app_id")
 
@@ -159,7 +160,7 @@ private fun handleEventMessage(message: String, onClose: () -> Unit, triggerMess
         Log.i("WebView", "Pay payload: $payload")
     }
 
-    if(activity == "trigger") {
+    if(command == "trigger") {
         triggerMessage()
     }
 }
