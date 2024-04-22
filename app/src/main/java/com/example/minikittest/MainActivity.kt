@@ -79,9 +79,11 @@ class MainActivity : ComponentActivity() {
 
 }
 
+
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(),  onClose: () -> Unit, onWebViewCreated: (WebView) -> Unit = {} ) {
+fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -> Unit, onWebViewCreated: (WebView) -> Unit = {}) {
     val context = LocalContext.current
     val webView = WebView(context)
 
@@ -93,25 +95,49 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(),  onClose: () 
         }
     }
 
-    fun triggerMessage() {
+    webView.webViewClient = object : WebViewClient() {
+        override fun onPageFinished(view: WebView, url: String) {
+            Log.i("AAABBB", "LOADED")
+            super.onPageFinished(view, url)
 
-        val randomNumber = (100..999).random()
-        val proof = "0x$randomNumber"
+            delayFunctionCallTimer(3000) {
+                val randomNumber = (100..999).random()
+                val proof = "0x$randomNumber"
+                triggerMessage("miniapp-verify-action", "{proof: '$proof', action: 'miniapp-verify-action'}")
+            }
 
-        Handler(Looper.getMainLooper()).post {
-            val jsCode = "MiniKit.trigger('miniapp-verify-action', {payload: {proof: '$proof'}});"
-            webView.evaluateJavascript(jsCode, null)
+            delayFunctionCallTimer(5000) {
+                val randomNumber = (100..999).random()
+                val proof = "0x$randomNumber"
+                triggerMessage("miniapp-payment-initiated", "{proof: '$proof', action: 'miniapp-payment-initiated'}")
+            }
+
+            delayFunctionCallTimer(7000) {
+                val randomNumber = (100..999).random()
+                val proof = "0x$randomNumber"
+                triggerMessage("miniapp-payment-completed", "{proof: '$proof', action: 'miniapp-payment-completed'}")
+            }
+        }
+
+        private fun triggerMessage(action: String, payload: String) {
+            Handler(Looper.getMainLooper()).post {
+                val jsCode = "MiniKit.trigger('$action', {payload: $payload});"
+                webView.evaluateJavascript(jsCode, null)
+            }
+        }
+
+        private fun delayFunctionCallTimer(i: Long, function: () -> Unit) {
+            Handler(Looper.getMainLooper()).postDelayed(function, i)
         }
     }
 
-    val jsInterface = JsInterface { handleEventMessage(message = it, onClose, triggerMessage = ::triggerMessage) }
+    val jsInterface = JsInterface { handleEventMessage(message = it, onClose) }
 
     val webViewApply = webView.apply {
-        webViewClient = WebViewClient()
         settings.javaScriptEnabled = true
         addJavascriptInterface(jsInterface, "Android")
         onWebViewCreated(this)
-        loadUrl("https://9ad8-209-214-34-58.ngrok-free.app") // Specify the URL here
+        loadUrl("https://every-cities-swim.loca.lt") // Specify the URL here
     }
 
     AndroidView(
@@ -133,7 +159,7 @@ class JsInterface(val onWebViewEvent: (String) -> Unit) {
     }
 }
 
-private fun handleEventMessage(message: String, onClose: () -> Unit, triggerMessage: () -> Unit) {
+private fun handleEventMessage(message: String, onClose: () -> Unit) {
     val jsonObject = JSONObject(message)
     val command = jsonObject.getString("command")
 
@@ -141,11 +167,6 @@ private fun handleEventMessage(message: String, onClose: () -> Unit, triggerMess
     // For demonstration, we're just logging the received data
     Log.i("WebAppInterface", "Command: $command")
     Log.i("WebAppInterface", "JSON: $jsonObject")
-
-    if(command == "close") {
-        triggerMessage()
-//        onClose()
-    }
 
     if(command == "verify") {
         val payload = jsonObject.getString("payload")
@@ -158,9 +179,5 @@ private fun handleEventMessage(message: String, onClose: () -> Unit, triggerMess
 
         val payload = jsonObject.getString("payload")
         Log.i("WebView", "Pay payload: $payload")
-    }
-
-    if(command == "trigger") {
-        triggerMessage()
     }
 }
