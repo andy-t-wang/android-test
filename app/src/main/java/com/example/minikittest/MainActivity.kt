@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebView
-import android.webkit.WebViewClient
+import com.google.gson.Gson
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +20,8 @@ import android.os.Handler
 import android.os.Looper
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,7 +81,9 @@ class MainActivity : ComponentActivity() {
 
 }
 
-
+// Igor: You will need to create classes for the errors
+data class VerifyEventPayload(val status: String, val proof: String, val action: String, val nullifier_hash: String, val verification_level: String, val merkle_root: String)
+data class PaymentInitiatedPayload(val transaction_hash: String, val status: String, val from: String, val chain: String, val timestamp: String, val signature: String)
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -95,39 +99,57 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
         }
     }
 
-    webView.webViewClient = object : WebViewClient() {
-        override fun onPageFinished(view: WebView, url: String) {
-            Log.i("AAABBB", "LOADED")
-            super.onPageFinished(view, url)
+    fun delayFunctionCallTimer(i: Long, function: () -> Unit) {
+        Handler(Looper.getMainLooper()).postDelayed(function, i)
+    }
 
-            delayFunctionCallTimer(3000) {
-                val randomNumber = (100..999).random()
-                val proof = "0x$randomNumber"
-                triggerMessage("miniapp-verify-action", "{proof: '$proof', action: 'miniapp-verify-action'}")
-            }
+    fun triggerMessage(action: String, payload: VerifyEventPayload) {
+        val gson = Gson()
+        val jsonData = gson.toJson(payload)
+        Handler(Looper.getMainLooper()).post {
+            Log.i("json", "msg $jsonData")
+            val jsCode = "MiniKit.trigger('${action}', ${jsonData});"
+            webView.evaluateJavascript(jsCode, null)
+        }
+    }
 
-            delayFunctionCallTimer(5000) {
-                val randomNumber = (100..999).random()
-                val proof = "0x$randomNumber"
-                triggerMessage("miniapp-payment-initiated", "{proof: '$proof', action: 'miniapp-payment-initiated'}")
-            }
+    fun triggerMessage(action: String, payload: PaymentInitiatedPayload) {
+        val gson = Gson()
+        val jsonData = gson.toJson(payload)
+        Handler(Looper.getMainLooper()).post {
+            Log.i("json", "msg $jsonData")
+            val jsCode = "MiniKit.trigger('${action}', ${jsonData});"
+            webView.evaluateJavascript(jsCode, null)
+        }
+    }
 
-            delayFunctionCallTimer(7000) {
-                val randomNumber = (100..999).random()
-                val proof = "0x$randomNumber"
-                triggerMessage("miniapp-payment-completed", "{proof: '$proof', action: 'miniapp-payment-completed'}")
+    fun handleEventMessage(message: String, onClose: () -> Unit) {
+        val jsonObject = JSONObject(message)
+        val command = jsonObject.getString("command")
+
+        // Handle the data (e.g., start a new activity, show a dialog, etc.)
+        // For demonstration, we're just logging the received data
+        Log.i("WebAppInterface", "Command: $command")
+        Log.i("WebAppInterface", "JSON: $jsonObject")
+
+        if(command == "verify") {
+            val payload = jsonObject.getString("payload")
+            Log.i("WebView", "Verify payload: $payload")
+            delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
+                val verifyPayload = VerifyEventPayload("success", "0x", "miniapp-verify-action", "0x", "device", "0x")
+                triggerMessage("miniapp-verify-action", verifyPayload);
+                Log.i("WebView", "Delayed Verify Command Executed with payload $verifyPayload")
             }
         }
 
-        private fun triggerMessage(action: String, payload: String) {
-            Handler(Looper.getMainLooper()).post {
-                val jsCode = "MiniKit.trigger('$action', {payload: $payload});"
-                webView.evaluateJavascript(jsCode, null)
+        if(command == "pay") {
+            val payload = jsonObject.getString("payload")
+            Log.i("WebView", "Pay payload: $payload")
+            delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
+                val paymentInitiatedPayload = PaymentInitiatedPayload("0x1234123", "initiated", "0x1231231", "optimism", "123123124124", "0x1231231231")
+                triggerMessage("miniapp-payment", paymentInitiatedPayload);
+                Log.i("WebView", "Delayed Verify Command Executed with payload $paymentInitiatedPayload")
             }
-        }
-
-        private fun delayFunctionCallTimer(i: Long, function: () -> Unit) {
-            Handler(Looper.getMainLooper()).postDelayed(function, i)
         }
     }
 
@@ -136,9 +158,24 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
     val webViewApply = webView.apply {
         settings.javaScriptEnabled = true
         addJavascriptInterface(jsInterface, "Android")
+
+        // Set a custom WebViewClient
+        webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                view?.loadUrl(request?.url.toString())
+                return true // Return true means the host application handles the URL
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                // Optional: Handle any functionality once page loads
+            }
+        }
+
         onWebViewCreated(this)
-        loadUrl("https://every-cities-swim.loca.lt") // Specify the URL here
+        loadUrl("https://4f6c-209-214-34-58.ngrok-free.app") // Specify the URL here
     }
+
 
     AndroidView(
         factory = { webViewApply },
@@ -159,25 +196,3 @@ class JsInterface(val onWebViewEvent: (String) -> Unit) {
     }
 }
 
-private fun handleEventMessage(message: String, onClose: () -> Unit) {
-    val jsonObject = JSONObject(message)
-    val command = jsonObject.getString("command")
-
-    // Handle the data (e.g., start a new activity, show a dialog, etc.)
-    // For demonstration, we're just logging the received data
-    Log.i("WebAppInterface", "Command: $command")
-    Log.i("WebAppInterface", "JSON: $jsonObject")
-
-    if(command == "verify") {
-        val payload = jsonObject.getString("payload")
-        Log.i("WebView", "Verify payload: $payload")
-    }
-
-    if(command == "pay") {
-        val app_id = jsonObject.getString("app_id")
-        Log.i("WebView", "Pay app_id: $app_id")
-
-        val payload = jsonObject.getString("payload")
-        Log.i("WebView", "Pay payload: $payload")
-    }
-}
