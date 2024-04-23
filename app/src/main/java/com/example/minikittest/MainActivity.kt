@@ -173,7 +173,7 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
         }
 
         onWebViewCreated(this)
-        loadUrl("https://4f6c-209-214-34-58.ngrok-free.app") // Specify the URL here
+        loadUrl("https://whole-poets-listen.loca.lt") // Specify the URL here
     }
 
 
@@ -184,15 +184,9 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
 }
 
 class JsInterface(val onWebViewEvent: (String) -> Unit) {
-    //This wat minikit is callable on the js side too, but I didn't figured out how create it here to be property on JS side.
     @JavascriptInterface
-    fun minikit() = Minikit(onWebViewEvent)
-
-    inner class Minikit(private val onWebViewEvent: (String) -> Unit) {
-        @JavascriptInterface
-        fun sendEvent(message: String) {
-            onWebViewEvent(message)
-        }
+    fun postMessage(message: String) {
+        onWebViewEvent(message)
     }
 }
 
