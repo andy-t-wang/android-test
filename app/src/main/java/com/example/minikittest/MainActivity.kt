@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
 }
 
 // Igor: You will need to create classes for the errors
-data class VerifyEventPayload(val status: String, val proof: String, val action: String, val nullifier_hash: String, val verification_level: String, val merkle_root: String)
+data class VerifyEventPayload(val status: String, val proof: String, val nullifier_hash: String, val verification_level: String, val merkle_root: String)
 data class PaymentInitiatedPayload(val transaction_hash: String, val status: String, val from: String, val chain: String, val timestamp: String, val signature: String)
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -136,7 +136,7 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
             val payload = jsonObject.getString("payload")
             Log.i("WebView", "Verify payload: $payload")
             delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
-                val verifyPayload = VerifyEventPayload("success", "0x", "miniapp-verify-action", "0x", "device", "0x")
+                val verifyPayload = VerifyEventPayload("success", "0x12ebb99e703cc3e1c5c62092d2311296754f601445f4361cc6f9900752a16b002307f2d803a9e693141a12737f5a176968ad58ed6e7a0292446499044189fb6f0bc7116208afd7b9dec19afba5d42fda3cc7751fd92b4de541f830c2d25b0119059a143259b7b621674692f1ad34ff4d40e5166fae4b13445fbec0384a9cd5781d6a961bbd32b28a7b4542861bdda8ba80997202c749b50e978855b53acbfacf19cc359cfe030f9d6e22f7adab9ec40d56bcc35d408118d7178741de87ffd456163092de34e93cd60d35c443b5893859089f1d029ea7fe00163bf37e9c189210196cbd69612005e0ea40a8ae62c62c522d79cbf700e851ec34a246ad9fd34079", "0x2287c2cfe0ecd12c8eacf2bb5adccda4d662d424cc95fce1c2d86de2fc26b8aa", "orb", "0x1fb06faba088098cd7102a7b6151b1ec0139783b0c8821ae063270e8ba843ebe")
                 triggerMessage("miniapp-verify-action", verifyPayload);
                 Log.i("WebView", "Delayed Verify Command Executed with payload $verifyPayload")
             }
@@ -173,7 +173,7 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
         }
 
         onWebViewCreated(this)
-        loadUrl("https://whole-poets-listen.loca.lt") // Specify the URL here
+        loadUrl("https://minikit-js-with-next.vercel.app/") // Specify the URL here
     }
 
 
