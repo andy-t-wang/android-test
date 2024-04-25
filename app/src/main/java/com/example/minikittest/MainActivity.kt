@@ -83,6 +83,8 @@ class MainActivity : ComponentActivity() {
 
 // Igor: You will need to create classes for the errors
 data class VerifyEventPayload(val status: String, val proof: String, val nullifier_hash: String, val verification_level: String, val merkle_root: String)
+data class VerifyErrorPayload(val status: String, val error_code: String)
+
 data class PaymentInitiatedPayload(val transaction_hash: String, val status: String, val from: String, val chain: String, val timestamp: String, val signature: String)
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -104,6 +106,16 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
     }
 
     fun triggerMessage(action: String, payload: VerifyEventPayload) {
+        val gson = Gson()
+        val jsonData = gson.toJson(payload)
+        Handler(Looper.getMainLooper()).post {
+            Log.i("json", "msg $jsonData")
+            val jsCode = "MiniKit.trigger('${action}', ${jsonData});"
+            webView.evaluateJavascript(jsCode, null)
+        }
+    }
+
+    fun triggerMessage(action: String, payload: VerifyErrorPayload) {
         val gson = Gson()
         val jsonData = gson.toJson(payload)
         Handler(Looper.getMainLooper()).post {
@@ -136,7 +148,12 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
             val payload = jsonObject.getString("payload")
             Log.i("WebView", "Verify payload: $payload")
             delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
-                val verifyPayload = VerifyEventPayload("success", "0x12ebb99e703cc3e1c5c62092d2311296754f601445f4361cc6f9900752a16b002307f2d803a9e693141a12737f5a176968ad58ed6e7a0292446499044189fb6f0bc7116208afd7b9dec19afba5d42fda3cc7751fd92b4de541f830c2d25b0119059a143259b7b621674692f1ad34ff4d40e5166fae4b13445fbec0384a9cd5781d6a961bbd32b28a7b4542861bdda8ba80997202c749b50e978855b53acbfacf19cc359cfe030f9d6e22f7adab9ec40d56bcc35d408118d7178741de87ffd456163092de34e93cd60d35c443b5893859089f1d029ea7fe00163bf37e9c189210196cbd69612005e0ea40a8ae62c62c522d79cbf700e851ec34a246ad9fd34079", "0x2287c2cfe0ecd12c8eacf2bb5adccda4d662d424cc95fce1c2d86de2fc26b8aa", "orb", "0x1fb06faba088098cd7102a7b6151b1ec0139783b0c8821ae063270e8ba843ebe")
+                // Valid Production
+//              val verifyPayload = VerifyEventPayload("success", "0x030e27504d0c11eecd76e5442d3abc454f896ad18300c75f60f304eaf107b8772773c39fa7324beedcb9bcbfb4c765993305e612aa7919c36667e2c7fcb2477418b2cc5a4602246ba5f79a10043a12206e71ae906180ef61d19ab833d589ecd31c4c4721798c1cfbec223adb662cb2f07b3a3535c995ae313749a871ab30d8e719ea33ceff7cb2d42dcc470e500e0cda186452c5367ac0c6432ab67d6d08c3892ceb0044b198965e732eeeb0b189de2e152c80efd2d472a7711d7c6f4d2e06f8118b6915d1f0629870aee765f26c52bbd58c64288f990eb885f6898d218784ec20caac6276b22f8651c702ccd97ec3041860cf7d09f52a4f2e812623862da377", "0x22bc3b2045f7561f45bfa15b90ebf6b3bfb984d0eb05102044b2c8f972d5ae86", "orb", "0x050124e5bd32ad6a443b4f7650e10984faf1c05dcef28c27036e7ef9743833a9")
+                // Valid Staging
+                val verifyPayload = VerifyEventPayload("success", "0x144211f7d68fe98749f3d46d3d230729556a61bf75d8535ada55e0062d3284d91a4d0eb7e8395920a7c6bc9560c1f9e7bdae82038bf8ec8728b5c62f64a3a5091932bb7f6f4f216dd5fbd13b63e92bfffa46e2e64f1523713b3e7f8d7b05b4c81e16be74b52871d1cdb77caf7f21120b3be79b8e03422eeb618ee953c8ee96842ac218d531abcd3e11f76e7b9267d8cf4fc2b8adf7fba6affa8ebf6d706bafa7181bb4703d79338a9f71cda817870f305aa51e350260aebc68acd13c34dfe0ec10b220deaa80a9b9f546686800bdda6dd8208c068471e1cde5f00ccd4a3fa5ba272ee325825274c1c6091a2311e24dedc3f0f7896ea59009c7f9520ed304c8bd", "0x19410e85a0b8e321b236de30e3a225e11f6cc1a79a1d4b65d2146d9698c9cbba", "orb", "0x2250fdb75d9073c1e022e14b8ba989b10fac99601fbb40e2abbaf84d6cbf99e8")
+//              Test Error
+//              val errorPayload = VerifyErrorPayload("error", "invalid_network")
                 triggerMessage("miniapp-verify-action", verifyPayload);
                 Log.i("WebView", "Delayed Verify Command Executed with payload $verifyPayload")
             }
