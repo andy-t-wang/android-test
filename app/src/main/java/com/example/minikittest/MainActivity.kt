@@ -88,8 +88,11 @@ class MainActivity : ComponentActivity() {
 data class VerifyEventPayload(val status: String, val proof: String, val nullifier_hash: String, val verification_level: String, val merkle_root: String)
 data class VerifyErrorPayload(val status: String, val error_code: String)
 
-data class PaymentSuccessPayload(val status: String, val from: String, val chain: String, val timestamp: String, val transaction_status: String, val reference: String)
+data class PaymentSuccessPayload(val status: String, val transaction_id: String, val from: String, val chain: String, val timestamp: String, val transaction_status: String, val reference: String)
 data class PaymentErrorPayload(val status: String, val error_code: String)
+
+data class WalletAuthSuccessPayload(val status: String, val message: String, val address: String, val signature: String)
+data class WalletAuthErrorPayload(val status: String, val error_code: String, val address: String, val details: String)
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -149,6 +152,26 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
         }
     }
 
+    fun triggerMessage(action: String, payload: WalletAuthSuccessPayload) {
+        val gson = Gson()
+        val jsonData = gson.toJson(payload)
+        Handler(Looper.getMainLooper()).post {
+            Log.i("json", "msg $jsonData")
+            val jsCode = "MiniKit.trigger('${action}', ${jsonData});"
+            webView.evaluateJavascript(jsCode, null)
+        }
+    }
+
+    fun triggerMessage(action: String, payload: WalletAuthErrorPayload) {
+        val gson = Gson()
+        val jsonData = gson.toJson(payload)
+        Handler(Looper.getMainLooper()).post {
+            Log.i("json", "msg $jsonData")
+            val jsCode = "MiniKit.trigger('${action}', ${jsonData});"
+            webView.evaluateJavascript(jsCode, null)
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun handleEventMessage(message: String, onClose: () -> Unit) {
         val jsonObject = JSONObject(message)
@@ -181,11 +204,38 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
             delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
                 val currentTimestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 // Valid Payload
-                val paymentInitiatedPayload = PaymentSuccessPayload("success", "0x1203921032u30123231wefwef11231231231", "optimism", currentTimestamp, "submitted", payload.get("reference").toString())
+                val paymentInitiatedPayload = PaymentSuccessPayload("success", "98591778-f3d5-4feb-b027-ec55aa22f40e", "0x1203921032u30123231wefwef11231231231", "optimism", currentTimestamp, "submitted", payload.get("reference").toString())
                 // Error Payload
                 val paymentErrorPayload = PaymentErrorPayload("error", "invalid_receiver")
-                triggerMessage("miniapp-payment", paymentErrorPayload);
-                Log.i("WebView", "Delayed Verify Command Executed with payload $paymentErrorPayload")
+                triggerMessage("miniapp-payment", paymentInitiatedPayload);
+                Log.i("WebView", "Delayed Verify Command Executed with payload $paymentInitiatedPayload")
+            }
+        }
+
+        if(command == "wallet-auth") {
+            val payload = jsonObject.getString("payload")
+            Log.i("WebView", "Wallet Auth payload: $payload")
+            delayFunctionCallTimer(3000) { // Delay the response by 3000 milliseconds
+                // Valid Production
+                val walletAuth = WalletAuthSuccessPayload("success", "https://test.com wants you to sign in with your Ethereum account:\n" +
+                        "0x52fcC6871c8CF3BfD8A5E455E1CF125d3d0AD558\n" +
+                        "\n" +
+                        "statement\n" +
+                        "\n" +
+                        "URI: https://test.com\n" +
+                        "Version: 1\n" +
+                        "Chain ID: 10\n" +
+                        "Nonce: 12345678\n" +
+                        "Issued At: 2024-05-10T02:14:34.298Z\n" +
+                        "Expiration Time: 2024-05-17T02:14:34.298Z\n" +
+                        "Not Before: 2024-05-03T00:00:00Z\n" +
+                        "Request ID: 0", "0x52fcC6871c8CF3BfD8A5E455E1CF125d3d0AD558", "0xf50c4ed9cab084b27ecd788b49fe2ca96c97bba7c18f770a82e51921d4de195537375cc7d49f36006bed488cf501d18bf1d115090fe3bb2cc7b7d8979169adf31b")
+                // Valid Staging
+//                val verifyPayload = VerifyEventPayload("success", "0x144211f7d68fe98749f3d46d3d230729556a61bf75d8535ada55e0062d3284d91a4d0eb7e8395920a7c6bc9560c1f9e7bdae82038bf8ec8728b5c62f64a3a5091932bb7f6f4f216dd5fbd13b63e92bfffa46e2e64f1523713b3e7f8d7b05b4c81e16be74b52871d1cdb77caf7f21120b3be79b8e03422eeb618ee953c8ee96842ac218d531abcd3e11f76e7b9267d8cf4fc2b8adf7fba6affa8ebf6d706bafa7181bb4703d79338a9f71cda817870f305aa51e350260aebc68acd13c34dfe0ec10b220deaa80a9b9f546686800bdda6dd8208c068471e1cde5f00ccd4a3fa5ba272ee325825274c1c6091a2311e24dedc3f0f7896ea59009c7f9520ed304c8bd", "0x19410e85a0b8e321b236de30e3a225e11f6cc1a79a1d4b65d2146d9698c9cbba", "orb", "0x2250fdb75d9073c1e022e14b8ba989b10fac99601fbb40e2abbaf84d6cbf99e8")
+//              Test Error
+//              val errorPayload = VerifyErrorPayload("error", "invaliffd_network")
+                triggerMessage("miniapp-wallet-auth", walletAuth);
+                Log.i("WebView", "Delayed Verify Command Executed with payload $walletAuth")
             }
         }
     }
@@ -210,7 +260,7 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
         }
 
         onWebViewCreated(this)
-        loadUrl("https://898f-2601-645-4200-7ed0-6091-e417-839a-9dcc.ngrok-free.app") // Specify the URL here
+        loadUrl("https://515e-2800-810-446-795-197e-58dd-b1aa-58cf.ngrok-free.app") // Specify the URL here
     }
 
 
