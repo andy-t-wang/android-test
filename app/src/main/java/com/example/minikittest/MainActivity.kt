@@ -255,12 +255,14 @@ fun FullscreenWebView(modifier: Modifier = Modifier.fillMaxSize(), onClose: () -
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                webView.evaluateJavascript("window.WorldApp = 'Hello, World'; console.log('hello');", null)
+
                 // Optional: Handle any functionality once page loads
             }
         }
 
         onWebViewCreated(this)
-        loadUrl("https://515e-2800-810-446-795-197e-58dd-b1aa-58cf.ngrok-free.app") // Specify the URL here
+        loadUrl("https://dd44-24-40-186-142.ngrok-free.app") // Specify the URL here
     }
 
 
